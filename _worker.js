@@ -3191,43 +3191,40 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 获取当前页面的完整长链接地址
-            const fullLongUrl = window.location.origin + cpurl;
-
-            // 发送POST请求到短链接服务
+// 发送POST请求到短链接服务
             fetch('https://sdurl-4wo.pages.dev/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    url: fullLongUrl.trim() // 发送补全协议后的完整地址
+                    url: subscriptionLink // 直接发送原始URL，不要用base64Encoded
                 })
             })
-            .then(async response => {
-                const resData = await response.json();
-                if (!response.ok) {
-                    throw new Error(resData.error || 'HTTP ' + response.status);
-                }
-                return resData;
-            })
+            .then(response => response.json())
             .then(data => {
+                console.log("短链接响应:", data);
                 if (data.status === 200 && (data.short_url || data.key)) {
-                    const finalUrl = data.short_url || (window.location.origin + (data.key.startsWith('/') ? data.key : '/' + data.key));
+                    // 识别返回格式并确保域名正确
+                    const myDomain = 'https://你的域名.pages.dev';
+                    const finalUrl = data.short_url || (myDomain + (data.key.startsWith('/') ? data.key : '/' + data.key));
+                    
+                    // 更新cpurl为短链接
                     cpurl = finalUrl;
                     subscriptionLinkElement.textContent = finalUrl;
+                    // 使用原有样式更新二维码
                     generateQRCode(finalUrl);
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "未知错误");
+                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "请检查后端");
                 }
             })
             .catch(error => {
                 console.error("生成短链接错误:", error);
-                subscriptionLinkElement.textContent = "生成失败: " + error.message;
+                subscriptionLinkElement.textContent = "短链接服务连接失败";
             });
         }
         
