@@ -3191,46 +3191,51 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 发送POST请求到你的短链接服务 (基于原版后端示例)
-            const myApiDomain = 'https://sdurl.catpawapp.de5.net/'; 
+// 发送POST请求到你的短链接服务 (原版后端适配)
+            const myApiUrl = 'https://sdurl.catpawapp.de5.net/'; 
             
-            fetch(myApiDomain, {
+            fetch(myApiUrl, {
                 method: 'POST',
+                mode: 'cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    url: subscriptionLink, // 必须：长链接地址
-                    captcha_token: ""      // 示例要求字段。如果你没开启验证码，传空字符串即可
+                    url: subscriptionLink // 原版后端通常只识别这个字段
                 })
             })
-            .then(response => response.json())
+            .then(async response => {
+                const resData = await response.json();
+                if (!response.ok) {
+                    throw new Error(resData.error || 'HTTP ' + response.status);
+                }
+                return resData;
+            })
             .then(data => {
                 console.log("短链接响应:", data);
-                // 按照示例判断 status 是否为 200
+                // 原版后端成功时通常返回 status: 200
+                // 短链 key 可能在 data.key 或 data.short_url 中
                 if (data.status === 200 && (data.key || data.short_url)) {
-                    // 优先使用返回的完整短链，否则用域名+key拼接
                     const shortKey = data.key || data.short_url;
-                    const finalUrl = shortKey.startsWith('http') ? shortKey : (myApiDomain + (shortKey.startsWith('/') ? shortKey.substring(1) : shortKey));
+                    // 拼接最终短链：如果返回的是完整链接则直接用，否则用域名拼接
+                    const finalUrl = shortKey.startsWith('http') ? shortKey : (myApiUrl + (shortKey.startsWith('/') ? shortKey.substring(1) : shortKey));
                     
-                    // 更新页面变量和显示
                     cpurl = finalUrl;
                     subscriptionLinkElement.textContent = finalUrl;
                     generateQRCode(finalUrl);
                     
-                    // 添加复制成功的视觉效果
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    // 显示后端返回的具体错误
-                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "状态码异常");
+                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "后端校验未通过");
                 }
             })
             .catch(error => {
                 console.error("生成短链接错误:", error);
-                subscriptionLinkElement.textContent = "连接失败: 请检查Worker是否1101错误";
+                // 如果报错，请确认后端 config 中 cors 是否为 "on"
+                subscriptionLinkElement.textContent = "连接失败: " + error.message;
             });
         }
         
