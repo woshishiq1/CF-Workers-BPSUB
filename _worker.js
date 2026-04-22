@@ -3194,33 +3194,24 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
 // 发送POST请求到短链接服务
             fetch('https://sdurl-4wo.pages.dev/', {
                 method: 'POST',
-                mode: 'cors', // 显式启用跨域模式
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    url: base64Encoded
+                    url: base64Encoded.trim()
                 })
             })
-            .then(response => {
-                if (!response.ok) throw new Error('HTTP error ' + response.status);
-                return response.json();
+            .then(async response => {
+                const resData = await response.json();
+                if (!response.ok) {
+                    throw new Error(resData.error || 'HTTP ' + response.status);
+                }
+                return resData;
             })
             .then(data => {
-                console.log("短链接生成成功:", data);
-                // 兼容处理：优先取 short_url，其次拼接域名+key
-                let finalUrl = "";
-                if (data.status === 200) {
-                    if (data.short_url) {
-                        finalUrl = data.short_url;
-                    } else if (data.key) {
-                        // 这里的域名如果不是当前域名，请手动写死成你的短链域名
-                        const apiHost = 'https://sdurl-4wo.pages.dev';
-                        finalUrl = apiHost + (data.key.startsWith('/') ? data.key : '/' + data.key);
-                    }
-                }
-
-                if (finalUrl) {
+                if (data.status === 200 && (data.short_url || data.key)) {
+                    // 自动识别后端返回的格式进行拼接
+                    const finalUrl = data.short_url || (window.location.origin + (data.key.startsWith('/') ? data.key : '/' + data.key));
                     cpurl = finalUrl;
                     subscriptionLinkElement.textContent = finalUrl;
                     generateQRCode(finalUrl);
@@ -3229,11 +3220,11 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    throw new Error(data.error || "返回数据格式不正确");
+                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "未知错误");
                 }
             })
             .catch(error => {
-                console.error("生成短链接错误详情:", error);
+                console.error("生成短链接错误:", error);
                 subscriptionLinkElement.textContent = "生成失败: " + error.message;
             });
         }
