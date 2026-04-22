@@ -3191,14 +3191,17 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 发送POST请求到短链接服务
+// 获取当前页面的完整长链接地址
+            const fullLongUrl = window.location.origin + cpurl;
+
+            // 发送POST请求到短链接服务
             fetch('https://sdurl-4wo.pages.dev/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    url: base64Encoded.trim()
+                    url: fullLongUrl.trim() // 发送补全协议后的完整地址
                 })
             })
             .then(async response => {
@@ -3210,7 +3213,6 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             })
             .then(data => {
                 if (data.status === 200 && (data.short_url || data.key)) {
-                    // 自动识别后端返回的格式进行拼接
                     const finalUrl = data.short_url || (window.location.origin + (data.key.startsWith('/') ? data.key : '/' + data.key));
                     cpurl = finalUrl;
                     subscriptionLinkElement.textContent = finalUrl;
