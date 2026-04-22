@@ -3191,7 +3191,7 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 发送POST请求到你的短链接服务 (原版后端适配)
+// 发送POST请求到你的 crazypeace 版短链接服务
             const myApiUrl = 'https://sdurl.catpawapp.de5.net/'; 
             
             fetch(myApiUrl, {
@@ -3201,25 +3201,19 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    url: subscriptionLink // 原版后端通常只识别这个字段
+                    cmd: "add",            // 必须：后端判断此字段执行保存
+                    url: subscriptionLink, // 必须：长链接
+                    key: "",               // 必须：传空让后端自动随机生成
+                    password: "sdurl"      // 必须：直接填入你在Worker config里设定的密码
                 })
             })
-            .then(async response => {
-                const resData = await response.json();
-                if (!response.ok) {
-                    throw new Error(resData.error || 'HTTP ' + response.status);
-                }
-                return resData;
-            })
+            .then(response => response.json())
             .then(data => {
-                console.log("短链接响应:", data);
-                // 原版后端成功时通常返回 status: 200
-                // 短链 key 可能在 data.key 或 data.short_url 中
-                if (data.status === 200 && (data.key || data.short_url)) {
-                    const shortKey = data.key || data.short_url;
-                    // 拼接最终短链：如果返回的是完整链接则直接用，否则用域名拼接
-                    const finalUrl = shortKey.startsWith('http') ? shortKey : (myApiUrl + (shortKey.startsWith('/') ? shortKey.substring(1) : shortKey));
+                // 根据你部署的源码，成功返回 status 为数字 200
+                if (data.status === 200 && data.key) {
+                    const finalUrl = myApiUrl + data.key;
                     
+                    // 以下是 cmliu 脚本原本的 UI 更新逻辑
                     cpurl = finalUrl;
                     subscriptionLinkElement.textContent = finalUrl;
                     generateQRCode(finalUrl);
@@ -3229,13 +3223,13 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "后端校验未通过");
+                    // 如果 status 错误（比如密码不对），显示后端返回的错误
+                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "后端拒收");
                 }
             })
             .catch(error => {
-                console.error("生成短链接错误:", error);
-                // 如果报错，请确认后端 config 中 cors 是否为 "on"
-                subscriptionLinkElement.textContent = "连接失败: " + error.message;
+                console.error("短链服务请求失败:", error);
+                subscriptionLinkElement.textContent = "连接失败: 检查域名或Worker配置";
             });
         }
         
