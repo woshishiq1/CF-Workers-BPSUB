@@ -3192,26 +3192,22 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             const base64Encoded = btoa(subscriptionLink);
             
             // 发送POST请求到短链接服务
-            fetch('https://url-shorten-worker-8a9.pages.dev/', {
+            fetch('url-shorten-worker-8a9.pages.dev', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
-                    url: base64Encoded
-                })
+                body: 'longUrl=' + encodeURIComponent(base64Encoded)
             })
             .then(response => response.json())
             .then(data => {
                 console.log("短链接响应:", data);
-                if (data.status === 200 && (data.short_url || data.key)) {
-                    // 优先使用后端返回的完整链接，其次通过当前页面域名拼接
-                    const finalUrl = data.short_url || (window.location.origin + data.key);
+                if (data.Code === 1 && data.ShortUrl) {
                     // 更新cpurl为短链接
-                    cpurl = finalUrl;
-                    subscriptionLinkElement.textContent = finalUrl;
+                    cpurl = data.ShortUrl;
+                    subscriptionLinkElement.textContent = data.ShortUrl;
                     // 使用原有样式更新二维码
-                    generateQRCode(finalUrl);
+                    generateQRCode(data.ShortUrl);
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
