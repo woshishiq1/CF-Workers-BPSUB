@@ -3192,7 +3192,7 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             const base64Encoded = btoa(subscriptionLink);
             
 // 发送POST请求到你的短链接服务 (基于原版后端示例)
-            const myApiDomain = 'https://你的域名.pages.dev/'; 
+            const myApiDomain = 'https://sdurl.catpawapp.de5.net/'; 
             
             fetch(myApiDomain, {
                 method: 'POST',
