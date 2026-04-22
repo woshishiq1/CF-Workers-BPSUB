@@ -3191,40 +3191,34 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 发送POST请求到短链接服务
-            fetch('https://sdurl-4wo.pages.dev/', {
+            // 发送POST请求到短链接服务
+            fetch('https://v1.mk/short', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
-                    url: subscriptionLink // 直接发送原始URL，不要用base64Encoded
-                })
+                body: 'longUrl=' + encodeURIComponent(base64Encoded)
             })
             .then(response => response.json())
             .then(data => {
                 console.log("短链接响应:", data);
-                if (data.status === 200 && (data.short_url || data.key)) {
-                    // 识别返回格式并确保域名正确
-                    const myDomain = 'https://你的域名.pages.dev';
-                    const finalUrl = data.short_url || (myDomain + (data.key.startsWith('/') ? data.key : '/' + data.key));
-                    
+                if (data.Code === 1 && data.ShortUrl) {
                     // 更新cpurl为短链接
-                    cpurl = finalUrl;
-                    subscriptionLinkElement.textContent = finalUrl;
+                    cpurl = data.ShortUrl;
+                    subscriptionLinkElement.textContent = data.ShortUrl;
                     // 使用原有样式更新二维码
-                    generateQRCode(finalUrl);
+                    generateQRCode(data.ShortUrl);
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "请检查后端");
+                    subscriptionLinkElement.textContent = "短链接生成失败，请重试";
                 }
             })
             .catch(error => {
                 console.error("生成短链接错误:", error);
-                subscriptionLinkElement.textContent = "短链接服务连接失败";
+                subscriptionLinkElement.textContent = "短链接生成失败，请重试";
             });
         }
         
