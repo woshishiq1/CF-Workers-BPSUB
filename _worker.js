@@ -3191,34 +3191,46 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-            // 发送POST请求到短链接服务
-            fetch('https://v1.mk/short', {
+// 发送POST请求到你的短链接服务 (基于原版后端示例)
+            const myApiDomain = 'https://你的域名.pages.dev/'; 
+            
+            fetch(myApiDomain, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                 },
-                body: 'longUrl=' + encodeURIComponent(base64Encoded)
+                body: JSON.stringify({
+                    url: subscriptionLink, // 必须：长链接地址
+                    captcha_token: ""      // 示例要求字段。如果你没开启验证码，传空字符串即可
+                })
             })
             .then(response => response.json())
             .then(data => {
                 console.log("短链接响应:", data);
-                if (data.Code === 1 && data.ShortUrl) {
-                    // 更新cpurl为短链接
-                    cpurl = data.ShortUrl;
-                    subscriptionLinkElement.textContent = data.ShortUrl;
-                    // 使用原有样式更新二维码
-                    generateQRCode(data.ShortUrl);
+                // 按照示例判断 status 是否为 200
+                if (data.status === 200 && (data.key || data.short_url)) {
+                    // 优先使用返回的完整短链，否则用域名+key拼接
+                    const shortKey = data.key || data.short_url;
+                    const finalUrl = shortKey.startsWith('http') ? shortKey : (myApiDomain + (shortKey.startsWith('/') ? shortKey.substring(1) : shortKey));
+                    
+                    // 更新页面变量和显示
+                    cpurl = finalUrl;
+                    subscriptionLinkElement.textContent = finalUrl;
+                    generateQRCode(finalUrl);
+                    
+                    // 添加复制成功的视觉效果
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    subscriptionLinkElement.textContent = "短链接生成失败，请重试";
+                    // 显示后端返回的具体错误
+                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "状态码异常");
                 }
             })
             .catch(error => {
                 console.error("生成短链接错误:", error);
-                subscriptionLinkElement.textContent = "短链接生成失败，请重试";
+                subscriptionLinkElement.textContent = "连接失败: 请检查Worker是否1101错误";
             });
         }
         
