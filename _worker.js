@@ -3192,7 +3192,7 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             const base64Encoded = btoa(subscriptionLink);
             
             // 发送POST请求到短链接服务
-            fetch('https://你的域名.pages.dev/', {
+            fetch('https://url-shorten-worker-8a9.pages.dev/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
