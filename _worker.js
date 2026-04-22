@@ -3191,45 +3191,34 @@ async function subHtml(request, hostLength = 0, FileName, subProtocol, subConver
             // Base64编码
             const base64Encoded = btoa(subscriptionLink);
             
-// 发送POST请求到你的 crazypeace 版短链接服务
-            const myApiUrl = 'https://sdurl.catpawapp.de5.net/'; 
-            
-            fetch(myApiUrl, {
+            // 发送POST请求到短链接服务
+            fetch('https://v1.mk/short', {
                 method: 'POST',
-                mode: 'cors',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: JSON.stringify({
-                    cmd: "add",            // 必须：后端判断此字段执行保存
-                    url: subscriptionLink, // 必须：长链接
-                    key: "",               // 必须：传空让后端自动随机生成
-                    password: "sdurl"      // 必须：直接填入你在Worker config里设定的密码
-                })
+                body: 'longUrl=' + encodeURIComponent(base64Encoded)
             })
             .then(response => response.json())
             .then(data => {
-                // 根据你部署的源码，成功返回 status 为数字 200
-                if (data.status === 200 && data.key) {
-                    const finalUrl = myApiUrl + data.key;
-                    
-                    // 以下是 cmliu 脚本原本的 UI 更新逻辑
-                    cpurl = finalUrl;
-                    subscriptionLinkElement.textContent = finalUrl;
-                    generateQRCode(finalUrl);
-                    
+                console.log("短链接响应:", data);
+                if (data.Code === 1 && data.ShortUrl) {
+                    // 更新cpurl为短链接
+                    cpurl = data.ShortUrl;
+                    subscriptionLinkElement.textContent = data.ShortUrl;
+                    // 使用原有样式更新二维码
+                    generateQRCode(data.ShortUrl);
                     subscriptionLinkElement.classList.add('copied');
                     setTimeout(() => {
                         subscriptionLinkElement.classList.remove('copied');
                     }, 300);
                 } else {
-                    // 如果 status 错误（比如密码不对），显示后端返回的错误
-                    subscriptionLinkElement.textContent = "生成失败: " + (data.error || "后端拒收");
+                    subscriptionLinkElement.textContent = "短链接生成失败，请重试";
                 }
             })
             .catch(error => {
-                console.error("短链服务请求失败:", error);
-                subscriptionLinkElement.textContent = "连接失败: 检查域名或Worker配置";
+                console.error("生成短链接错误:", error);
+                subscriptionLinkElement.textContent = "短链接生成失败，请重试";
             });
         }
         
